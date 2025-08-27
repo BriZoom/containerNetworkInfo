@@ -1,4 +1,3 @@
-
 import json
 import logging
 import time
@@ -9,7 +8,8 @@ import requests
 import urllib3
 from airflow.decorators import dag, task
 from airflow.exceptions import AirflowException
-from airflow.sdk import Variable
+from airflow.models import Variable
+
 # Suppress InsecureRequestWarning from logs
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -218,3 +218,4 @@ def container_network_etl_dag():
 
 # Instantiate the DAG to make it discoverable by Airflow
 container_network_etl_dag()
+
