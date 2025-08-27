@@ -9,8 +9,7 @@ import requests
 import urllib3
 from airflow.decorators import dag, task
 from airflow.exceptions import AirflowException
-from airflow.models import Variable
-
+from airflow.sdk import Variable
 # Suppress InsecureRequestWarning from logs
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
