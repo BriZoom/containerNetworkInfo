@@ -21,7 +21,7 @@ permissions: write-all
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest
+    runs-on: ip-172-31-1-49
 
     steps:
       - name: Checkout repository
@@ -64,7 +64,7 @@ jobs:
 
     # --- THIS IS THE KEY ---
     # This job runs on your pre-authenticated EC2 instance
-    runs-on: self-hosted
+    runs-on: ip-172-31-1-49
 
     steps:
       - name: Checkout repository
