@@ -1,0 +1,102 @@
+# .github/workflows/dag_ci.yml
+#
+# This workflow runs CI checks on an Apache Airflow DAG project.
+# It includes standard Python/Airflow tests and intentionally insecure
+# configurations to test the Palo Alto Cortex XDR application security scanner.
+
+name: Airflow DAG CI with Cortex XDR Scan
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+# --- INTENTIONALLY INSECURE CONFIGURATION 1 ---
+# This top-level permissions block grants write-all access to the GITHUB_TOKEN.
+# This is overly permissive and should be detected by a security scanner.
+# A better practice is to define minimal permissions, e.g., `permissions: contents: read`
+permissions: write-all
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        # Using a mutable tag (v4) instead of a specific commit SHA
+        # is a common security practice violation.
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10' # Specify your project's Python version
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          # Ensure airflow and any testing tools are installed
+          pip install apache-airflow pytest flake8
+
+      - name: Lint with Flake8
+        run: |
+          # This step just runs a linter
+          flake8 .
+        # --- INTENTIONALLY INSECURE CONFIGURATION 2 ---
+        # Hardcoding secrets directly in the workflow file.
+        # This is a critical vulnerability that Cortex XDR should immediately detect.
+        # These keys are fake but follow a common pattern.
+        env:
+          PRISMA_API_KEY: "pa-12345-this-is-a-fake-but-detectable-key"
+          SQL_DB_PASSWORD: "Password123!"
+
+      - name: Test Airflow DAG Integrity
+        run: |
+          python -c "
+import os
+from airflow.models import DagBag
+
+# Define the dags folder path
+dags_folder = os.path.join(os.getcwd(), 'dags')
+print(f'Loading DAGs from: {dags_folder}')
+
+# Load the DagBag
+dag_bag = DagBag(dag_folder=dags_folder, include_examples=False)
+
+# Check for import errors
+if dag_bag.import_errors:
+    print('!!! FATAL: Airflow DAG import errors detected !!!')
+    for dag_id, error_msg in dag_bag.import_errors.items():
+        print(f'Error in {dag_id}: {error_msg}')
+    exit(1)
+else:
+    print('Success: All DAGs loaded without import errors.')
+    print(f'Discovered {len(dag_bag.dags)} DAGs:')
+    for dag_id, dag in dag_bag.dags.items():
+        print(f'- {dag_id}')
+"
+
+      - name: Run Pytest (Unit Tests)
+        run: |
+          # Assumes your tests are in a 'tests/' directory
+          pytest
+
+      - name: Run Palo Alto Cortex XDR Scan
+        # This is the step where you integrate the Cortex XDR scanner.
+        # You will need to find the specific action in the GitHub Marketplace
+        # or from your Palo Alto documentation.
+        run: |
+          echo "Simulating Cortex XDR Scan..."
+          echo "This step should be replaced with the official Palo Alto action."
+        
+        # --- EXAMPLE of what the real step might look like ---
+        #
+        # uses: paloaltonetworks/cortex-scan-action@v1
+        # with:
+        #   # Secrets must be stored in GitHub > Settings > Secrets > Actions
+        #   cortex_api_key_id: ${{ secrets.CORTEX_API_KEY_ID }}
+        #   cortex_api_key: ${{ secrets.CORTEX_API_KEY }}
+        #   failure-threshold: 'high' # Fails the build on high-severity issues
+
