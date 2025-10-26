@@ -1,3 +1,4 @@
+#
 # .github/workflows/dag_ci.yml
 #
 # This workflow runs CI checks on an Apache Airflow DAG project.
@@ -69,15 +70,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build Docker Image Locally
+      - name: Build, Tag, and Push Image to AWS ECR
         run: |
-          # Build with the local tag 'sandbox:latest'
-          docker build -t sandbox:latest .
-
-      - name: Tag and Push Image to AWS ECR
-        run: |
-          echo "Tagging image..."
-          docker tag sandbox:latest public.ecr.aws/m4x7b4c9/sandbox:latest
+          echo "Building image and tagging..."
+          # Build the image and tag it with both local and ECR tags
+          docker build -t sandbox:latest -t public.ecr.aws/m4x7b4c9/sandbox:latest .
 
           echo "Pushing image to ECR..."
           # This assumes auth is already handled on the EC2 runner
