@@ -16,4 +16,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 # --- DECOY ENTRYPOINT ---
 # This is the key. Instead of running airflow, we just sleep.
 # The container will run, but the Python code is never executed.
-ENTRYPOINT ["python"]
+ENTRYPOINT ["sleep", "infinity"]
