@@ -27,13 +27,6 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      - name: Install Testing Tools
-        run: |
-          # Install nmap (for scanning) and curl (for web requests)
-          # This assumes a Debian/Ubuntu-based runner. Use 'yum' for RHEL.
-          sudo apt-get update
-          sudo apt-get install -y nmap curl
-
       - name: 1. Run Recon - Network Service Scanning (MITRE T1046)
         run: |
           echo "Starting T1046: Network Service Scanning..."
