@@ -34,23 +34,23 @@ jobs:
           echo "Cortex XDR should detect this as a reconnaissance attempt."
           nmap -sV -T4 ${{ github.event.inputs.target_ip }}
 
-      - name: 2. Run Credential Access - Brute Force (MITRE T1110)
-        run: |
-          echo "Starting T1110: Brute Force (Password Guessing)..."
-          echo "Simulating 5 failed login attempts against DVWA."
-          echo "Cortex XDR should detect this as a brute-force attack."
-
-          # This simulates multiple failed POST requests to a login form.
-          # The DVWA login page is typically 'login.php'.
-          for password in "password" "123456" "admin" "badpass" "root"; do
-            echo "Attempting with user 'admin' and password '$password'"
-            curl -X POST \
-              -d "username=admin&password=$password&Login=Login" \
-              --cookie "security=low; PHPSESSID=1234" \
-              http://${{ github.event.inputs.target_ip }}/login.php
-            sleep 1
-          done
-
+      # - name: 2. Run Credential Access - Brute Force (MITRE T1110)
+      #   run: |
+      #     echo "Starting T1110: Brute Force (Password Guessing)..."
+      #     echo "Simulating 5 failed login attempts against DVWA."
+      #     echo "Cortex XDR should detect this as a brute-force attack."
+      #
+      #     # This simulates multiple failed POST requests to a login form.
+      #     # The DVWA login page is typically 'login.php'.
+      #     for password in "password" "123456" "admin" "badpass" "root"; do
+      #       echo "Attempting with user 'admin' and password '$password'"
+      #       curl -X POST \
+      #         -d "username=admin&password=$password&Login=Login" \
+      #         --cookie "security=low; PHPSESSID=1234" \
+      #         http://${{ github.event.inputs.target_ip }}/login.php
+      #       sleep 1
+      #     done
+      #
       - name: 3. Run Credential Access - Credentials in Files (MITRE T1552.001)
         run: |
           echo "Starting T1552.001: Searching for credentials in files..."
